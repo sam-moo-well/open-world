@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Open World — Maria of the Great Sword</title>
+  <style>
+    :root { color-scheme: dark; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #0c1420; }
+    body { font-family: "Segoe UI", system-ui, sans-serif; color: #e8eef4; }
+    #app { position: fixed; inset: 0; }
+    canvas { display: block; }
+
+    .overlay {
+      position: fixed; inset: 0; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 18px;
+      background: radial-gradient(ellipse at 50% 40%, #16283c 0%, #0a1220 75%);
+      z-index: 20; transition: opacity .5s; user-select: none;
+    }
+    .overlay.hidden { opacity: 0; pointer-events: none; }
+    .overlay h1 { font-size: 34px; font-weight: 600; letter-spacing: 2px; color: #ffd97a; text-shadow: 0 2px 18px #0008; }
+    .overlay .sub { font-size: 15px; color: #9fb4c8; letter-spacing: 1px; }
+    #loadbar { width: 320px; height: 8px; border-radius: 4px; background: #223448; overflow: hidden; }
+    #loadbar > div { height: 100%; width: 0%; background: linear-gradient(90deg, #6fc06a, #ffd97a); transition: width .2s; }
+    #start-hint { display: none; font-size: 17px; color: #e8eef4; padding: 10px 26px; border: 1px solid #ffd97a66; border-radius: 24px; cursor: pointer; }
+    #start-hint:hover { background: #ffd97a22; }
+
+    .hud { position: fixed; z-index: 10; pointer-events: none; }
+    #health-wrap { top: 18px; left: 18px; }
+    #health-label { font-size: 11px; letter-spacing: 2px; color: #ffffffaa; margin-bottom: 4px; }
+    #health-outer { width: 240px; height: 14px; border-radius: 7px; background: #00000066; border: 1px solid #ffffff33; overflow: hidden; }
+    #health { height: 100%; width: 100%; border-radius: 6px; background: linear-gradient(90deg, #46b03c, #8fdc4a); transition: width .25s; }
+
+    #controls { right: 16px; bottom: 14px; text-align: right; font-size: 12px; line-height: 1.75; color: #ffffffcc; text-shadow: 0 1px 3px #000c; }
+    #controls b { color: #ffd97a; font-weight: 600; }
+
+    #message {
+      left: 50%; top: 38%; transform: translateX(-50%); font-size: 26px; letter-spacing: 3px;
+      color: #ffd97a; text-shadow: 0 2px 14px #000; opacity: 0; transition: opacity .4s; text-align: center;
+    }
+    #message .small { display: block; font-size: 14px; color: #cfd8e2; margin-top: 10px; letter-spacing: 1px; }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+
+  <div id="health-wrap" class="hud">
+    <div id="health-label">MARIA</div>
+    <div id="health-outer"><div id="health"></div></div>
+  </div>
+
+  <div id="controls" class="hud">
+    <b>WASD</b> move &nbsp; <b>Shift</b> walk &nbsp; <b>Space</b> jump &nbsp; <b>C</b> crouch<br>
+    <b>LMB</b> attack combo &nbsp; <b>V</b> spin attack &nbsp; <b>RMB</b> hold to block<br>
+    <b>F</b> kick &nbsp; <b>Q</b> sheathe / draw &nbsp; <b>E</b> power up &nbsp; <b>R</b> cast &nbsp; <b>G</b> channel<br>
+    <b>H</b> take a hit (test) &nbsp; <b>Enter</b> respawn &nbsp; <b>Mouse</b> camera &nbsp; <b>Wheel</b> zoom
+  </div>
+
+  <div id="message" class="hud"></div>
+
+  <div id="overlay" class="overlay">
+    <h1>MARIA OF THE GREAT SWORD</h1>
+    <div class="sub">an open world in the making</div>
+    <div id="loadbar"><div></div></div>
+    <div class="sub" id="load-label">Loading the hero&hellip;</div>
+    <div id="start-hint">Click to play</div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
