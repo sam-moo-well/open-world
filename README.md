@@ -13,7 +13,10 @@ npm install
 npm run dev        # then open the printed URL
 ```
 
-Click to lock the pointer and take control.
+Click to lock the pointer and take control. On a phone or tablet the touch
+layout appears automatically — force it on a desktop browser with `?touch=1`.
+
+### Desktop
 
 | Input | Action |
 |---|---|
@@ -31,6 +34,41 @@ Click to lock the pointer and take control.
 | **H** | Take a hit (test) — health drops, random hit reaction, death at zero |
 | **Enter** | Respawn after death |
 
+### Mobile
+
+Thirteen desktop inputs collapse to five touch controls. The principle is one
+control per *intent*, with game state disambiguating the rest — which the
+controller already did for running, airborne and crouched attacks.
+
+```
++----------------------+----------------------+
+|                      |               (✦)    |   ✦  ability
+|   floating stick     |        (🛡)           |   🛡  guard
+| (⌄)                  |    (⤒)     ⚔        |   ⤒  jump
++----------------------+----------------------+   ⌄  crouch
+   move / walk-run          camera drag
+```
+
+| Touch | Action |
+|---|---|
+| **Stick** | Move — push halfway to walk, fully to run (analog, so Shift disappears) |
+| **Drag right side** | Orbit camera; pinch to zoom |
+| **⚔ tap** | Attack combo — repeat-tap chains it; running, airborne and crouched variants are contextual |
+| **⚔ hold** | Spin attack |
+| **🛡 tap / hold** | Guard — tap toggles it up and down, or hold and release |
+| **⤒** | Jump |
+| **⌄** | Crouch |
+| **✦ tap / hold** | Power up / long channel |
+| **Tap anywhere** | Respawn after death |
+
+Three inputs are gone entirely. Sheathing has no button: attacking auto-draws,
+and the sword now puts itself away a few seconds after combat ends (a manual
+**Q** always wins until the next fight). Kick and the debug hit key are cut.
+
+Guard is a *toggle* on touch because two thumbs cannot hold a button, steer and
+orbit at once — a held guard would cost you the camera. Sliding a thumb off any
+button cancels the press, so a camera drag that grazes a button does nothing.
+
 ## How it works
 
 ```
@@ -42,6 +80,7 @@ src/
   controller.js  hero state machine + physics
   camera.js      terrain-aware third-person orbit camera
   input.js       keyboard/mouse with per-frame edges + test hooks
+  touch.js       mobile controls, synthesized into the same input signals
 ```
 
 Design decisions rooted in the asset audit (`docs/ANIMATION_AUDIT.md`):
@@ -58,6 +97,10 @@ Design decisions rooted in the asset audit (`docs/ANIMATION_AUDIT.md`):
 - **Terrain**: one analytic `heightAt(x, z)` function feeds the mesh, the
   character grounding, the camera collision and the prop scatter, so
   nothing ever disagrees about where the ground is.
+- **Touch**: `touch.js` only *synthesizes* signals `input.js` already
+  exposes — key edges, mouse buttons, look deltas — so the controller has
+  no touch-specific branches. Movement became analog for the stick's sake,
+  and the keyboard fakes a half-pushed stick when Shift is held.
 
 The world is a 620 m square of smooth hills (steepest grade stays
 runnable), with lakes in the valleys, sandy shorelines, forest patches and
@@ -66,11 +109,16 @@ scattered rocks — all seeded, all reproducible.
 ## Roadmap
 
 - [x] Hero with full moveset on procedural terrain
+- [x] Mobile touch controls
 - [ ] Enemies ("fighting off the monsters") — any Mixamo humanoid retargets
       onto this skeleton for free
 - [ ] Points of interest
 - [ ] Power-ups & collectibles
-- [ ] Landing/dodge animations (not in the pack — see audit gaps)
+- [ ] Landing/dodge animations (not in the pack — see audit gaps). A dodge
+      matters most on mobile, where it belongs on a **tap** of the guard
+      button; the pack has no roll clip, so it needs new animation.
+- [ ] Lock-on, and a camera that drifts to follow travel — the two biggest
+      remaining wins for touch, best designed in before enemies land.
 
 ## Assets
 

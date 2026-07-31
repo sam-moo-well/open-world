@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
   <title>Open World — Maria of the Great Sword</title>
   <style>
     :root { color-scheme: dark; }
@@ -40,6 +40,47 @@
       color: #ffd97a; text-shadow: 0 2px 14px #000; opacity: 0; transition: opacity .4s; text-align: center;
     }
     #message .small { display: block; font-size: 14px; color: #cfd8e2; margin-top: 10px; letter-spacing: 1px; }
+
+    /* ---------------------------------------------------- touch controls */
+    #touch-ui { position: fixed; inset: 0; z-index: 15; touch-action: none; }
+    #touch-ui * { touch-action: none; user-select: none; -webkit-user-select: none; }
+    /* Drag surfaces sit behind the buttons; buttons stop propagation. */
+    #touch-ui .t-move { position: absolute; left: 0; top: 0; width: 45%; height: 100%; }
+    #touch-ui .t-cam { position: absolute; right: 0; top: 0; width: 55%; height: 100%; }
+
+    #touch-ui .t-stick {
+      position: absolute; width: 124px; height: 124px; margin: -62px 0 0 -62px;
+      border-radius: 50%; border: 2px solid #ffffff40; background: #00000033;
+      opacity: 0; transition: opacity .15s; pointer-events: none;
+    }
+    #touch-ui .t-stick.active { opacity: 1; }
+    #touch-ui .t-knob {
+      position: absolute; left: 50%; top: 50%; width: 54px; height: 54px;
+      margin: 0; border-radius: 50%; background: #ffffffcc;
+      transform: translate(-50%, -50%); box-shadow: 0 2px 10px #0006;
+    }
+
+    #touch-ui .t-btn {
+      position: absolute; border-radius: 50%; display: flex;
+      align-items: center; justify-content: center;
+      background: #0e1a28aa; border: 2px solid #ffffff55; color: #eaf2f8;
+      box-shadow: 0 3px 12px #0005; transition: transform .08s, background .12s;
+    }
+    #touch-ui .t-btn.down { transform: scale(0.92); background: #ffd97a55; }
+
+    /* Bottom-right thumb arc. */
+    #touch-ui .t-attack {
+      width: 92px; height: 92px; right: 54px; bottom: 46px; font-size: 38px;
+      background: #7a1f1faa; border-color: #ffb3b3aa;
+    }
+    #touch-ui .t-jump    { width: 68px; height: 68px; right: 174px; bottom: 26px; font-size: 28px; }
+    #touch-ui .t-guard   { width: 68px; height: 68px; right: 156px; bottom: 134px; font-size: 26px; }
+    #touch-ui .t-guard.active { background: #2f6fb0cc; border-color: #bcdcff; }
+    #touch-ui .t-ability { width: 60px; height: 60px; right: 62px; bottom: 178px; font-size: 24px; }
+    /* Stance toggle lives by the left thumb, clear of the stick. */
+    #touch-ui .t-crouch  { width: 56px; height: 56px; left: 26px; bottom: 26px; font-size: 30px; }
+
+    body.touch #controls { display: none; }
   </style>
 </head>
 <body>

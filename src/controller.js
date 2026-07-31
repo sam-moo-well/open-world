@@ -13,6 +13,8 @@ const RUN_SPEED = 4.3;          // matches run_fwd's measured 428 cm/s
 const WALK_SPEED = 1.4;         // walk_fwd measured 109 cm/s -> ts ~1.28
 const CROUCH_SPEED = 1.2;
 const TURN_RATE = 11;           // rad/s exponential facing blend
+const WALK_THRESHOLD = 0.65;    // stick magnitude below this walks
+const SHEATHE_DELAY = 6;        // seconds out of combat before auto-sheathing
 
 // Forward advance (m/s) applied while these one-shots play, taken from the
 // clips' measured baked root velocities.
@@ -56,6 +58,11 @@ export class HeroController {
     this.deathToggle = false;
 
     this.pendingMount = null;    // {at, fn} scheduled against busyAction.time
+    this.moveMag = 0;            // analog stick magnitude, 0..1
+    // Auto-sheathe only ever follows real combat, never a manual draw, so
+    // drawing the sword by hand is never undone behind the player's back.
+    this.combatIdle = 0;
+    this.autoSheatheArmed = false;
     this.current = null;         // current looping AnimationAction
     this.currentName = '';
     this.idleTime = 0;
@@ -114,7 +121,20 @@ export class HeroController {
 
   // -------------------------------------------------------------- actions
 
+  // Combat happened: reset the out-of-combat timer and allow the sword to
+  // put itself away once things go quiet.
+  _markCombat() {
+    this.combatIdle = 0;
+    this.autoSheatheArmed = true;
+  }
+
+  static vibrate(ms) {
+    if (navigator.vibrate) navigator.vibrate(ms);
+  }
+
   _startAttack() {
+    this._markCombat();
+    HeroController.vibrate(12);
     if (this.sheathed) {         // TotK-style: attacking auto-draws first
       this.queuedAttack = true;
       this._startDraw();
@@ -174,6 +194,8 @@ export class HeroController {
     if (this.health <= 0) { this.die(); return; }
     this._cancelBusy();
     this.blocking = false;
+    this._markCombat();
+    HeroController.vibrate(35);
     const clip = HITS[Math.floor(Math.random() * HITS.length)];
     this._oneShot(clip, { fade: 0.08 });
   }
@@ -184,6 +206,7 @@ export class HeroController {
     this.blocking = false;
     this.crouched = false;
     this.deathToggle = !this.deathToggle;
+    HeroController.vibrate([40, 60, 120]);
     this._oneShot(this.deathToggle ? 'death_1' : 'death_2', { fade: 0.1 });
     this.hud.showMessage('YOU HAVE FALLEN', 'press Enter to rise again');
   }
@@ -203,11 +226,12 @@ export class HeroController {
 
   // --------------------------------------------------------------- update
 
+  // Returns a unit direction in world XZ; the raw stick/key magnitude is
+  // stashed on this.moveMag so speed selection stays analog.
   _moveInput() {
-    const v = new THREE.Vector2(
-      (this.input.down('KeyD') ? 1 : 0) - (this.input.down('KeyA') ? 1 : 0),
-      (this.input.down('KeyS') ? 1 : 0) - (this.input.down('KeyW') ? 1 : 0),
-    );
+    const raw = this.input.moveVector();
+    const v = new THREE.Vector2(raw.x, raw.y);
+    this.moveMag = Math.min(1, v.length());
     if (v.lengthSq() === 0) return v;
     v.normalize();
     // Rotate into camera space: camera forward is -Z of the orbit yaw.
@@ -237,10 +261,20 @@ export class HeroController {
 
     const idle = !this.busy && !this.blocking;
 
+    // Sword puts itself away once a fight is well and truly over, so the
+    // draw/sheathe input can disappear entirely on touch.
+    this.combatIdle += dt;
+    if (this.autoSheatheArmed && !this.sheathed && idle && this.grounded
+        && !this.crouched && this.combatIdle > SHEATHE_DELAY) {
+      this.autoSheatheArmed = false;
+      this._startSheathe();
+    }
+
     // --- one-shot triggers (ground only, not mid-action) ---
     if (idle && this.grounded) {
       if (input.pressed('KeyQ')) {
         this.crouched = false;
+        this.autoSheatheArmed = false;   // manual choice wins until next fight
         this.sheathed ? this._startDraw() : this._startSheathe();
       } else if (input.pressed('KeyE') && !this.crouched) {
         this._oneShot('power_up');
@@ -274,6 +308,8 @@ export class HeroController {
     if (input.mouseEdges.right && !this.busy && !this.blocking
         && this.grounded && !this.crouched && !this.sheathed) {
       this.blocking = true;
+      this._markCombat();
+      HeroController.vibrate(18);
       this._oneShot('block_enter', {
         onDone: () => { if (!this.input.mouse.right) this._endBlock(); },
       });
@@ -309,7 +345,7 @@ export class HeroController {
       this.facing += d * Math.min(1, TURN_RATE * dt);
 
       speed = this.crouched ? CROUCH_SPEED
-        : input.down('ShiftLeft') || input.down('ShiftRight') ? WALK_SPEED
+        : this.moveMag < WALK_THRESHOLD ? WALK_SPEED
         : RUN_SPEED;
       if (!this.grounded) speed *= 0.75;   // gentler air control
       if (this.busy) speed = 0;

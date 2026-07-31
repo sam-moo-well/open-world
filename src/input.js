@@ -9,6 +9,8 @@ export class Input {
     this.mouseEdges = { left: false, right: false, rightUp: false };
     this.look = { dx: 0, dy: 0 };
     this.wheel = 0;
+    // Analog move vector written by the touch stick; null means "use WASD".
+    this.stick = null;
 
     window.addEventListener('keydown', (e) => {
       if (e.repeat) return;
@@ -38,6 +40,20 @@ export class Input {
 
   down(code) { return this.keys.has(code); }
   pressed(code) { return this.edges.has(code); }
+
+  // Movement as an analog vector with magnitude 0..1, screen-space
+  // (+x right, +y "backwards"). The touch stick is analog by nature; the
+  // keyboard fakes it, with Shift standing in for a half-pushed stick. The
+  // controller picks walk vs run from the magnitude either way.
+  moveVector() {
+    if (this.stick) return this.stick;
+    const x = (this.down('KeyD') ? 1 : 0) - (this.down('KeyA') ? 1 : 0);
+    const y = (this.down('KeyS') ? 1 : 0) - (this.down('KeyW') ? 1 : 0);
+    if (x === 0 && y === 0) return { x: 0, y: 0 };
+    const len = Math.hypot(x, y);
+    const mag = this.down('ShiftLeft') || this.down('ShiftRight') ? 0.5 : 1;
+    return { x: (x / len) * mag, y: (y / len) * mag };
+  }
 
   // Call at the end of each frame.
   consume() {

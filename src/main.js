@@ -5,6 +5,7 @@ import { loadHero } from './character.js';
 import { Input } from './input.js';
 import { ThirdPersonCamera } from './camera.js';
 import { HeroController } from './controller.js';
+import { TouchControls } from './touch.js';
 
 // ------------------------------------------------------------------- HUD
 const hud = {
@@ -91,6 +92,10 @@ const orbit = new ThirdPersonCamera(camera, heightAt);
 
 let controller = null;
 let hero = null;
+let touch = null;
+
+const TOUCH_MODE = TouchControls.shouldEnable();
+if (TOUCH_MODE) document.body.classList.add('touch');
 
 loadHero((f) => { loadBar.style.width = `${Math.round(f * 100)}%`; })
   .then((h) => {
@@ -99,8 +104,11 @@ loadHero((f) => { loadBar.style.width = `${Math.round(f * 100)}%`; })
     controller = new HeroController(hero, heightAt, input, orbit, hud);
     hud.setHealth(100);
 
+    if (TOUCH_MODE) touch = new TouchControls(input, { isDead: () => controller.dead });
+
     loadLabel.style.display = 'none';
     document.getElementById('loadbar').style.display = 'none';
+    startHint.textContent = TOUCH_MODE ? 'Tap to play' : 'Click to play';
     startHint.style.display = 'block';
     startHint.addEventListener('click', start);
     window.__ready = true;
@@ -112,10 +120,11 @@ loadHero((f) => { loadBar.style.width = `${Math.round(f * 100)}%`; })
 
 function start() {
   overlay.classList.add('hidden');
-  renderer.domElement.requestPointerLock?.();
+  if (!TOUCH_MODE) renderer.domElement.requestPointerLock?.();
 }
 renderer.domElement.addEventListener('click', () => {
-  if (window.__ready && !document.pointerLockElement) renderer.domElement.requestPointerLock?.();
+  if (TOUCH_MODE || !window.__ready) return;
+  if (!document.pointerLockElement) renderer.domElement.requestPointerLock?.();
 });
 
 // ----------------------------------------------------------------- loop
@@ -156,5 +165,7 @@ window.__game = {
   get controller() { return controller; },
   get hero() { return hero; },
   input, orbit, scene, camera,
+  get touch() { return touch; },
+  touchMode: TOUCH_MODE,
   hideOverlay: () => overlay.classList.add('hidden'),
 };
